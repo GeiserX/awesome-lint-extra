@@ -1,0 +1,40 @@
+name: 'Awesome Lint Extra'
+description: 'Custom linter for awesome lists — format validation, alphabetical order, badge checks, and configurable URL approval'
+author: 'GeiserX'
+
+inputs:
+  readme:
+    description: 'Path to README.md'
+    required: false
+    default: 'README.md'
+  allowed_hosts:
+    description: 'JSON array of allowed git hosting domains (default includes github.com, gitlab.com, codeberg.org, etc.)'
+    required: false
+  require_badges:
+    description: 'Require shields.io badges in entries (true/false)'
+    required: false
+    default: 'false'
+  badge_types:
+    description: 'JSON array of required badge types: stars, last-commit, language, license'
+    required: false
+  check_alphabetical:
+    description: 'Check alphabetical order within sections (true/false)'
+    required: false
+    default: 'true'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Run awesome-lint-extra
+      shell: bash
+      env:
+        INPUT_README: ${{ inputs.readme }}
+        INPUT_ALLOWED_HOSTS: ${{ inputs.allowed_hosts }}
+        INPUT_REQUIRE_BADGES: ${{ inputs.require_badges }}
+        INPUT_BADGE_TYPES: ${{ inputs.badge_types }}
+        INPUT_CHECK_ALPHABETICAL: ${{ inputs.check_alphabetical }}
+      run: python3 ${{ github.action_path }}/lint.py
+
+branding:
+  icon: 'check-circle'
+  color: 'blue'
