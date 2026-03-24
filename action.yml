@@ -21,6 +21,9 @@ inputs:
     description: 'Check alphabetical order within sections (true/false)'
     required: false
     default: 'true'
+  require_custom_tags:
+    description: 'Require custom tag badges matching a color pattern (e.g., EU regulation tags). Set a hex color like "003399" to require tags of that color.'
+    required: false
 
 runs:
   using: 'composite'
@@ -33,6 +36,7 @@ runs:
         INPUT_REQUIRE_BADGES: ${{ inputs.require_badges }}
         INPUT_BADGE_TYPES: ${{ inputs.badge_types }}
         INPUT_CHECK_ALPHABETICAL: ${{ inputs.check_alphabetical }}
+        INPUT_REQUIRE_CUSTOM_TAGS: ${{ inputs.require_custom_tags }}
       run: python3 ${{ github.action_path }}/lint.py
 
 branding:

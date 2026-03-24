@@ -35,9 +35,11 @@ BADGE_PATTERNS = {
     "license": r'\[!\[License\]\(https://img\.shields\.io/github/license/',
 }
 
-# EU tag badge pattern
-EU_TAG_PATTERN = r'\[!\[([^\]]+)\]\(https://img\.shields\.io/badge/[^)]*003399[^)]*\)\]\(([^)]+)\)'
-EU_TAG_PLAIN_PATTERN = r'!\[([^\]]+)\]\(https://img\.shields\.io/badge/[^)]*003399[^)]*\)'
+def custom_tag_pattern(color):
+    """Build regex for custom tag badges with a specific color."""
+    clickable = rf'\[!\[[^\]]+\]\(https://img\.shields\.io/badge/[^)]*{color}[^)]*\)\]\([^)]+\)'
+    plain = rf'!\[[^\]]+\]\(https://img\.shields\.io/badge/[^)]*{color}[^)]*\)'
+    return clickable, plain
 
 
 def load_config(readme_dir):
@@ -47,7 +49,7 @@ def load_config(readme_dir):
         "allowed_hosts": DEFAULT_HOSTS,
         "require_badges": False,
         "badge_types": [],
-        "require_eu_tags": False,
+        "require_custom_tags": None,  # hex color string like "003399" to require custom tag badges
         "check_alphabetical": True,
         "check_description_format": True,
         "check_toc": True,
@@ -188,11 +190,13 @@ def lint_readme(readme_path, config):
                     if not re.search(BADGE_PATTERNS[badge_type], line):
                         errors.append((i, f"[{entry['name']}] Missing required badge: {badge_type}"))
 
-        # Check EU tags
-        if config["require_eu_tags"]:
-            has_eu = re.search(EU_TAG_PATTERN, line) or re.search(EU_TAG_PLAIN_PATTERN, line)
-            if not has_eu:
-                errors.append((i, f"[{entry['name']}] Missing EU regulation tag badge"))
+        # Check custom tag badges (e.g., EU regulation tags with color "003399")
+        tag_color = config.get("require_custom_tags")
+        if tag_color:
+            clickable_pat, plain_pat = custom_tag_pattern(tag_color)
+            has_tag = re.search(clickable_pat, line) or re.search(plain_pat, line)
+            if not has_tag:
+                errors.append((i, f"[{entry['name']}] Missing custom tag badge (color: {tag_color})"))
 
     # Check ToC matches sections
     if config["check_toc"] and toc_sections and actual_sections:
@@ -224,8 +228,8 @@ def main():
         config["require_badges"] = os.environ["INPUT_REQUIRE_BADGES"].lower() == "true"
     if os.environ.get("INPUT_BADGE_TYPES"):
         config["badge_types"] = json.loads(os.environ["INPUT_BADGE_TYPES"])
-    if os.environ.get("INPUT_REQUIRE_EU_TAGS"):
-        config["require_eu_tags"] = os.environ["INPUT_REQUIRE_EU_TAGS"].lower() == "true"
+    if os.environ.get("INPUT_REQUIRE_CUSTOM_TAGS"):
+        config["require_custom_tags"] = os.environ["INPUT_REQUIRE_CUSTOM_TAGS"]
     if os.environ.get("INPUT_CHECK_ALPHABETICAL"):
         config["check_alphabetical"] = os.environ["INPUT_CHECK_ALPHABETICAL"].lower() == "true"
 

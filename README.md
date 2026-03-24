@@ -70,6 +70,26 @@ Set `require_badges: true` and specify which badge types are required:
 
 Supported badge types: `stars`, `last-commit`, `language`, `license`.
 
+### Custom tag badges
+
+If your list uses colored tag badges (e.g., EU regulation tags), you can require them by specifying a hex color:
+
+```yaml
+- uses: GeiserX/awesome-lint-extra@main
+  with:
+    require_custom_tags: '003399'
+```
+
+Or in `.awesomerc.json`:
+
+```json
+{
+  "require_custom_tags": "003399"
+}
+```
+
+This checks that each entry has at least one shields.io badge with the specified color.
+
 ## License
 
 MIT
