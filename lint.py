@@ -76,9 +76,8 @@ def parse_entry(line):
     url = m.group(2)
     rest = m.group(3)
 
-    # Find description: everything after the last ` - ` that starts the description
-    # Description starts with a capital letter after ` - `
-    desc_match = re.search(r' - ([A-Z].+)$', rest)
+    # Find description: everything after the last ` - ` separator
+    desc_match = re.search(r' - ([A-Za-z].+)$', rest)
     description = desc_match.group(1) if desc_match else None
 
     return {"name": name, "url": url, "rest": rest, "description": description}
