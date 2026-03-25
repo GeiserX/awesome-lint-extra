@@ -1,10 +1,10 @@
 <div align="center">
-  <h1>awesome-lint-extra</h1>
-  <p><strong>A strict, configurable linter for awesome lists with badge validation</strong></p>
+  <img src="media/banner.svg" alt="awesome-lint-extra" width="700">
+  <br><br>
   <p>
-    <a href="https://github.com/GeiserX/awesome-lint-extra/actions"><img src="https://img.shields.io/github/actions/workflow/status/GeiserX/awesome-lint-extra/ci.yml?style=flat-square&label=CI" alt="CI"></a>
-    <a href="https://github.com/GeiserX/awesome-lint-extra/blob/main/LICENSE"><img src="https://img.shields.io/github/license/GeiserX/awesome-lint-extra?style=flat-square" alt="License"></a>
-    <a href="https://github.com/GeiserX/awesome-lint-extra/releases"><img src="https://img.shields.io/github/v/release/GeiserX/awesome-lint-extra?style=flat-square" alt="Release"></a>
+    <a href="https://github.com/GeiserX/awesome-lint-extra/releases/latest"><img src="https://img.shields.io/github/v/release/GeiserX/awesome-lint-extra?style=flat-square&label=release" alt="Release"></a>
+    <a href="https://github.com/GeiserX/awesome-lint-extra/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-blue?style=flat-square" alt="License"></a>
+    <a href="https://github.com/GeiserX/awesome-lint-extra/stargazers"><img src="https://img.shields.io/github/stars/GeiserX/awesome-lint-extra?style=flat-square" alt="Stars"></a>
   </p>
 </div>
 
