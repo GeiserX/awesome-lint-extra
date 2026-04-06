@@ -1,0 +1,50 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "awesome-lint-extra"
+version = "1.0.0"
+description = "Custom linter for awesome lists — format validation, alphabetical order, badge checks, and configurable URL approval"
+readme = "README.md"
+license = "GPL-3.0-only"
+requires-python = ">=3.8"
+authors = [
+    { name = "GeiserX" },
+]
+keywords = [
+    "awesome-list",
+    "linter",
+    "lint",
+    "markdown",
+    "awesome",
+    "badges",
+    "shields-io",
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Quality Assurance",
+    "Topic :: Text Processing :: Markup :: Markdown",
+]
+
+[project.urls]
+Homepage = "https://github.com/GeiserX/awesome-lint-extra"
+Repository = "https://github.com/GeiserX/awesome-lint-extra"
+Issues = "https://github.com/GeiserX/awesome-lint-extra/issues"
+
+[project.scripts]
+awesome-lint-extra = "lint:main"
+
+[tool.setuptools]
+py-modules = ["lint"]

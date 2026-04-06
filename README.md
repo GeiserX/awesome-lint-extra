@@ -1,7 +1,8 @@
 <div align="center">
-  <img src="media/banner.svg" alt="awesome-lint-extra" width="700">
+  <img src="https://raw.githubusercontent.com/GeiserX/awesome-lint-extra/main/media/banner.svg" alt="awesome-lint-extra" width="700">
   <br><br>
   <p>
+    <a href="https://pypi.org/project/awesome-lint-extra/"><img src="https://img.shields.io/pypi/v/awesome-lint-extra?style=flat-square" alt="PyPI"></a>
     <a href="https://github.com/GeiserX/awesome-lint-extra/releases/latest"><img src="https://img.shields.io/github/v/release/GeiserX/awesome-lint-extra?style=flat-square&label=release" alt="Release"></a>
     <a href="https://github.com/GeiserX/awesome-lint-extra/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-blue?style=flat-square" alt="License"></a>
     <a href="https://github.com/GeiserX/awesome-lint-extra/stargazers"><img src="https://img.shields.io/github/stars/GeiserX/awesome-lint-extra?style=flat-square" alt="Stars"></a>
@@ -46,7 +47,19 @@ jobs:
           check_alphabetical: 'true'
 ```
 
-## Usage locally
+## Install from PyPI
+
+```bash
+pip install awesome-lint-extra
+```
+
+Then run from any directory containing a `README.md`:
+
+```bash
+awesome-lint-extra
+```
+
+## Usage locally (without installing)
 
 ```bash
 python3 lint.py
