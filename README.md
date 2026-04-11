@@ -6,6 +6,7 @@
     <a href="https://github.com/GeiserX/awesome-lint-extra/releases/latest"><img src="https://img.shields.io/github/v/release/GeiserX/awesome-lint-extra?style=flat-square&label=release" alt="Release"></a>
     <a href="https://github.com/GeiserX/awesome-lint-extra/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-blue?style=flat-square" alt="License"></a>
     <a href="https://github.com/GeiserX/awesome-lint-extra/stargazers"><img src="https://img.shields.io/github/stars/GeiserX/awesome-lint-extra?style=flat-square" alt="Stars"></a>
+    <a href="https://codecov.io/gh/GeiserX/awesome-lint-extra"><img src="https://img.shields.io/codecov/c/github/GeiserX/awesome-lint-extra?style=flat-square" alt="Coverage"></a>
   </p>
 </div>
 
