@@ -120,11 +120,12 @@ def lint_readme(readme_path, config):
             in_lint_disable = False
             continue
 
-        # Track ToC entries
-        if in_lint_disable and line.startswith("- [") and "](#" in line:
-            m = re.match(r'^- \[([^\]]+)\]\(#', line)
-            if m:
-                toc_sections.append(m.group(1))
+        # Track ToC entries; skip everything else inside lint-disable blocks
+        if in_lint_disable:
+            if line.startswith("- [") and "](#" in line:
+                m = re.match(r'^- \[([^\]]+)\]\(#', line)
+                if m:
+                    toc_sections.append(m.group(1))
             continue
 
         # Track sections
