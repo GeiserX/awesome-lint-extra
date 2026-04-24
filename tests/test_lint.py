@@ -235,3 +235,350 @@ class TestLintReadme:
             config["badge_types"] = ["stars"]
             errors = lint_readme(readme, config)
             assert any("Missing required badge: stars" in e[1] for e in errors)
+
+    # --- lint disable / enable blocks (lines 117-129) ---
+
+    def test_lint_disable_skips_entries(self):
+        """Entries inside lint disable blocks are not checked."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            content = (
+                "## Tools\n\n"
+                "<!--lint disable-->\n"
+                "- [Zzz](https://evil.com/repo) - bad entry no period\n"
+                "<!--lint enable-->\n"
+                f"- [Alpha](https://github.com/u/a) {self._badge('u', 'a')} - Good entry.\n"
+            )
+            readme = self._write_readme(tmpdir, content)
+            config = load_config(tmpdir)
+            errors = lint_readme(readme, config)
+            # The bad entry inside disable block should not produce errors
+            assert not any("Zzz" in e[1] for e in errors)
+
+    def test_toc_entries_collected_inside_lint_disable(self):
+        """ToC entries inside lint-disable blocks are collected for ToC checking."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            content = (
+                "## Contents\n\n"
+                "<!--lint disable-->\n"
+                "- [Tools](#tools)\n"
+                "- [Libraries](#libraries)\n"
+                "<!--lint enable-->\n\n"
+                "## Tools\n\n"
+                f"- [Alpha](https://github.com/u/a) {self._badge('u', 'a')} - A tool.\n\n"
+                "## Libraries\n\n"
+                f"- [Beta](https://github.com/u/b) {self._badge('u', 'b')} - A lib.\n"
+            )
+            readme = self._write_readme(tmpdir, content)
+            config = load_config(tmpdir)
+            errors = lint_readme(readme, config)
+            assert not any("ToC" in e[1] for e in errors)
+
+    def test_toc_mismatch_reports_error(self):
+        """ToC entry with no matching section produces an error."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            content = (
+                "## Contents\n\n"
+                "<!--lint disable-->\n"
+                "- [Tools](#tools)\n"
+                "- [Nonexistent](#nonexistent)\n"
+                "<!--lint enable-->\n\n"
+                "## Tools\n\n"
+                f"- [Alpha](https://github.com/u/a) {self._badge('u', 'a')} - A tool.\n"
+            )
+            readme = self._write_readme(tmpdir, content)
+            config = load_config(tmpdir)
+            errors = lint_readme(readme, config)
+            assert any("Nonexistent" in e[1] and "ToC" in e[1] for e in errors)
+
+    def test_section_in_actual_but_not_toc_is_tolerated(self):
+        """Sections present in the doc but not in ToC do not produce errors (footer sections)."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            content = (
+                "## Contents\n\n"
+                "<!--lint disable-->\n"
+                "- [Tools](#tools)\n"
+                "<!--lint enable-->\n\n"
+                "## Tools\n\n"
+                f"- [Alpha](https://github.com/u/a) {self._badge('u', 'a')} - A tool.\n\n"
+                "## Contributing\n\n"
+                "Please contribute.\n"
+            )
+            readme = self._write_readme(tmpdir, content)
+            config = load_config(tmpdir)
+            errors = lint_readme(readme, config)
+            assert not any("Contributing" in e[1] for e in errors)
+
+    # --- subsection tracking (lines 141-143) ---
+
+    def test_subsection_resets_alphabetical_order(self):
+        """A new ### subsection resets alphabetical ordering."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            content = (
+                "## Tools\n\n"
+                "### CLI\n\n"
+                f"- [Zebra](https://github.com/u/z) {self._badge('u', 'z')} - Last.\n\n"
+                "### GUI\n\n"
+                f"- [Alpha](https://github.com/u/a) {self._badge('u', 'a')} - First.\n"
+            )
+            readme = self._write_readme(tmpdir, content)
+            config = load_config(tmpdir)
+            errors = lint_readme(readme, config)
+            # Alpha after Zebra is OK because subsection reset ordering
+            assert not any("alphabetical" in e[1].lower() for e in errors)
+
+    # --- unparseable entry (lines 151-152) ---
+
+    def test_unparseable_entry_reports_error(self):
+        """An entry line that starts with '- [' but cannot be parsed reports an error."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            content = (
+                "## Tools\n\n"
+                "- [BrokenLink](missingclosingparen - No good.\n"
+            )
+            readme = self._write_readme(tmpdir, content)
+            config = load_config(tmpdir)
+            errors = lint_readme(readme, config)
+            assert any("Cannot parse entry format" in e[1] for e in errors)
+
+    # --- description starts with project name (line 178) ---
+
+    def test_description_starts_with_project_name(self):
+        """Description that starts with the project name is flagged."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            content = (
+                "## Tools\n\n"
+                f"- [MyTool](https://github.com/u/t) {self._badge('u', 't')} - MyTool is a great thing.\n"
+            )
+            readme = self._write_readme(tmpdir, content)
+            config = load_config(tmpdir)
+            errors = lint_readme(readme, config)
+            assert any("should not start with the project name" in e[1] for e in errors)
+
+    # --- no description after separator (line 170) ---
+
+    def test_no_description_after_separator(self):
+        """Entry with badges but no ' - Description' part reports missing description."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            content = (
+                "## Tools\n\n"
+                f"- [Alpha](https://github.com/u/a) {self._badge('u', 'a')} some text without separator.\n"
+            )
+            readme = self._write_readme(tmpdir, content)
+            config = load_config(tmpdir)
+            errors = lint_readme(readme, config)
+            assert any("No description found" in e[1] for e in errors)
+
+    # --- custom tag badge checking (lines 196-199) ---
+
+    def test_custom_tag_missing_reports_error(self):
+        """Entry missing a required custom tag badge reports an error."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            content = (
+                "## Tools\n\n"
+                f"- [Alpha](https://github.com/u/a) {self._badge('u', 'a')} - A tool.\n"
+            )
+            readme = self._write_readme(tmpdir, content)
+            config = load_config(tmpdir)
+            config["require_custom_tags"] = "003399"
+            errors = lint_readme(readme, config)
+            assert any("Missing custom tag badge" in e[1] for e in errors)
+
+    def test_custom_tag_present_no_error(self):
+        """Entry with a matching custom tag badge passes."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tag = '[![EU](https://img.shields.io/badge/EU-003399)](https://example.com)'
+            content = (
+                "## Tools\n\n"
+                f"- [Alpha](https://github.com/u/a) {self._badge('u', 'a')} {tag} - A tool.\n"
+            )
+            readme = self._write_readme(tmpdir, content)
+            config = load_config(tmpdir)
+            config["require_custom_tags"] = "003399"
+            errors = lint_readme(readme, config)
+            assert not any("Missing custom tag badge" in e[1] for e in errors)
+
+    def test_custom_tag_plain_badge_accepted(self):
+        """A non-clickable (plain) custom tag badge also passes."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tag = '![EU](https://img.shields.io/badge/EU-003399)'
+            content = (
+                "## Tools\n\n"
+                f"- [Alpha](https://github.com/u/a) {self._badge('u', 'a')} {tag} - A tool.\n"
+            )
+            readme = self._write_readme(tmpdir, content)
+            config = load_config(tmpdir)
+            config["require_custom_tags"] = "003399"
+            errors = lint_readme(readme, config)
+            assert not any("Missing custom tag badge" in e[1] for e in errors)
+
+
+class TestMain:
+    """Tests for the main() function (lines 216-249, 253)."""
+
+    def _write_readme(self, tmpdir, content):
+        readme = Path(tmpdir) / "README.md"
+        readme.write_text(content)
+        return str(readme)
+
+    def _badge(self, user, repo):
+        return f"[![Stars](https://img.shields.io/github/stars/{user}/{repo})](https://github.com/{user}/{repo})"
+
+    def test_main_readme_not_found(self, monkeypatch):
+        """main() exits 1 when README.md does not exist."""
+        from lint import main
+        monkeypatch.setenv("INPUT_README", "/nonexistent/README.md")
+        monkeypatch.delenv("INPUT_ALLOWED_HOSTS", raising=False)
+        monkeypatch.delenv("INPUT_REQUIRE_BADGES", raising=False)
+        monkeypatch.delenv("INPUT_BADGE_TYPES", raising=False)
+        monkeypatch.delenv("INPUT_REQUIRE_CUSTOM_TAGS", raising=False)
+        monkeypatch.delenv("INPUT_CHECK_ALPHABETICAL", raising=False)
+        with pytest.raises(SystemExit) as exc_info:
+            main()
+        assert exc_info.value.code == 1
+
+    def test_main_clean_readme_exits_0(self, monkeypatch):
+        """main() exits 0 on a valid README."""
+        from lint import main
+        with tempfile.TemporaryDirectory() as tmpdir:
+            content = (
+                "## Tools\n\n"
+                f"- [Alpha](https://github.com/u/a) {self._badge('u', 'a')} - A tool.\n"
+            )
+            readme = self._write_readme(tmpdir, content)
+            monkeypatch.setenv("INPUT_README", readme)
+            monkeypatch.delenv("INPUT_ALLOWED_HOSTS", raising=False)
+            monkeypatch.delenv("INPUT_REQUIRE_BADGES", raising=False)
+            monkeypatch.delenv("INPUT_BADGE_TYPES", raising=False)
+            monkeypatch.delenv("INPUT_REQUIRE_CUSTOM_TAGS", raising=False)
+            monkeypatch.delenv("INPUT_CHECK_ALPHABETICAL", raising=False)
+            with pytest.raises(SystemExit) as exc_info:
+                main()
+            assert exc_info.value.code == 0
+
+    def test_main_with_errors_exits_1(self, monkeypatch, capsys):
+        """main() exits 1 and prints errors when lint finds issues."""
+        from lint import main
+        with tempfile.TemporaryDirectory() as tmpdir:
+            content = (
+                "## Tools\n\n"
+                f"- [Alpha](https://evil.com/a) {self._badge('u', 'a')} - A tool.\n"
+            )
+            readme = self._write_readme(tmpdir, content)
+            monkeypatch.setenv("INPUT_README", readme)
+            monkeypatch.delenv("INPUT_ALLOWED_HOSTS", raising=False)
+            monkeypatch.delenv("INPUT_REQUIRE_BADGES", raising=False)
+            monkeypatch.delenv("INPUT_BADGE_TYPES", raising=False)
+            monkeypatch.delenv("INPUT_REQUIRE_CUSTOM_TAGS", raising=False)
+            monkeypatch.delenv("INPUT_CHECK_ALPHABETICAL", raising=False)
+            with pytest.raises(SystemExit) as exc_info:
+                main()
+            assert exc_info.value.code == 1
+            captured = capsys.readouterr()
+            assert "error(s)" in captured.out
+
+    def test_main_env_allowed_hosts(self, monkeypatch):
+        """INPUT_ALLOWED_HOSTS env var overrides config."""
+        from lint import main
+        with tempfile.TemporaryDirectory() as tmpdir:
+            content = (
+                "## Tools\n\n"
+                f"- [Alpha](https://custom.host/a) {self._badge('u', 'a')} - A tool.\n"
+            )
+            readme = self._write_readme(tmpdir, content)
+            monkeypatch.setenv("INPUT_README", readme)
+            monkeypatch.setenv("INPUT_ALLOWED_HOSTS", '["custom.host"]')
+            monkeypatch.delenv("INPUT_REQUIRE_BADGES", raising=False)
+            monkeypatch.delenv("INPUT_BADGE_TYPES", raising=False)
+            monkeypatch.delenv("INPUT_REQUIRE_CUSTOM_TAGS", raising=False)
+            monkeypatch.delenv("INPUT_CHECK_ALPHABETICAL", raising=False)
+            with pytest.raises(SystemExit) as exc_info:
+                main()
+            assert exc_info.value.code == 0
+
+    def test_main_env_require_badges(self, monkeypatch):
+        """INPUT_REQUIRE_BADGES and INPUT_BADGE_TYPES env vars override config."""
+        from lint import main
+        with tempfile.TemporaryDirectory() as tmpdir:
+            content = (
+                "## Tools\n\n"
+                f"- [Alpha](https://github.com/u/a) {self._badge('u', 'a')} - A tool.\n"
+            )
+            readme = self._write_readme(tmpdir, content)
+            monkeypatch.setenv("INPUT_README", readme)
+            monkeypatch.setenv("INPUT_REQUIRE_BADGES", "true")
+            monkeypatch.setenv("INPUT_BADGE_TYPES", '["license"]')
+            monkeypatch.delenv("INPUT_ALLOWED_HOSTS", raising=False)
+            monkeypatch.delenv("INPUT_REQUIRE_CUSTOM_TAGS", raising=False)
+            monkeypatch.delenv("INPUT_CHECK_ALPHABETICAL", raising=False)
+            with pytest.raises(SystemExit) as exc_info:
+                main()
+            # Missing license badge -> errors -> exit 1
+            assert exc_info.value.code == 1
+
+    def test_main_env_require_custom_tags(self, monkeypatch):
+        """INPUT_REQUIRE_CUSTOM_TAGS env var override."""
+        from lint import main
+        with tempfile.TemporaryDirectory() as tmpdir:
+            content = (
+                "## Tools\n\n"
+                f"- [Alpha](https://github.com/u/a) {self._badge('u', 'a')} - A tool.\n"
+            )
+            readme = self._write_readme(tmpdir, content)
+            monkeypatch.setenv("INPUT_README", readme)
+            monkeypatch.setenv("INPUT_REQUIRE_CUSTOM_TAGS", "FF0000")
+            monkeypatch.delenv("INPUT_ALLOWED_HOSTS", raising=False)
+            monkeypatch.delenv("INPUT_REQUIRE_BADGES", raising=False)
+            monkeypatch.delenv("INPUT_BADGE_TYPES", raising=False)
+            monkeypatch.delenv("INPUT_CHECK_ALPHABETICAL", raising=False)
+            with pytest.raises(SystemExit) as exc_info:
+                main()
+            assert exc_info.value.code == 1
+
+    def test_main_env_check_alphabetical_false(self, monkeypatch):
+        """INPUT_CHECK_ALPHABETICAL=false disables alphabetical checking."""
+        from lint import main
+        with tempfile.TemporaryDirectory() as tmpdir:
+            content = (
+                "## Tools\n\n"
+                f"- [Zebra](https://github.com/u/z) {self._badge('u', 'z')} - Last.\n"
+                f"- [Alpha](https://github.com/u/a) {self._badge('u', 'a')} - First.\n"
+            )
+            readme = self._write_readme(tmpdir, content)
+            monkeypatch.setenv("INPUT_README", readme)
+            monkeypatch.setenv("INPUT_CHECK_ALPHABETICAL", "false")
+            monkeypatch.delenv("INPUT_ALLOWED_HOSTS", raising=False)
+            monkeypatch.delenv("INPUT_REQUIRE_BADGES", raising=False)
+            monkeypatch.delenv("INPUT_BADGE_TYPES", raising=False)
+            monkeypatch.delenv("INPUT_REQUIRE_CUSTOM_TAGS", raising=False)
+            with pytest.raises(SystemExit) as exc_info:
+                main()
+            assert exc_info.value.code == 0
+
+    def test_main_error_at_line_zero_prints_without_line_number(self, monkeypatch, capsys):
+        """ToC mismatch errors (line_num=0) print without a line number prefix."""
+        from lint import main
+        with tempfile.TemporaryDirectory() as tmpdir:
+            content = (
+                "## Contents\n\n"
+                "<!--lint disable-->\n"
+                "- [Tools](#tools)\n"
+                "- [Ghost](#ghost)\n"
+                "<!--lint enable-->\n\n"
+                "## Tools\n\n"
+                "- [Alpha](https://github.com/u/a) "
+                "[![Stars](https://img.shields.io/github/stars/u/a)](https://github.com/u/a)"
+                " - A tool.\n"
+            )
+            readme = self._write_readme(tmpdir, content)
+            monkeypatch.setenv("INPUT_README", readme)
+            monkeypatch.delenv("INPUT_ALLOWED_HOSTS", raising=False)
+            monkeypatch.delenv("INPUT_REQUIRE_BADGES", raising=False)
+            monkeypatch.delenv("INPUT_BADGE_TYPES", raising=False)
+            monkeypatch.delenv("INPUT_REQUIRE_CUSTOM_TAGS", raising=False)
+            monkeypatch.delenv("INPUT_CHECK_ALPHABETICAL", raising=False)
+            with pytest.raises(SystemExit) as exc_info:
+                main()
+            assert exc_info.value.code == 1
+            captured = capsys.readouterr()
+            # Line-0 errors should not have ":<line>" prefix
+            assert "Ghost" in captured.out
