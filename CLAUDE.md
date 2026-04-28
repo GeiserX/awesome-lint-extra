@@ -1,4 +1,4 @@
-# AGENTS.md — Awesome Lint Extra
+# CLAUDE.md — Awesome Lint Extra
 
 ## Project Overview
 
