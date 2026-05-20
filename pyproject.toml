@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "awesome-lint-extra"
-version = "1.0.0"
+version = "1.1.0"
 description = "Custom linter for awesome lists — format validation, alphabetical order, badge checks, and configurable URL approval"
 readme = "README.md"
 license = "GPL-3.0-only"
