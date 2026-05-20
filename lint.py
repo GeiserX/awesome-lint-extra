@@ -27,12 +27,26 @@ DEFAULT_HOSTS = [
     "gitlab.freedesktop.org",
 ]
 
-# Default badge patterns (shields.io)
+# Badge patterns (shields.io) — each badge type has a list of alternative regexes.
+# An entry passes if ANY pattern in the list matches.
 BADGE_PATTERNS = {
-    "stars": r'\[!\[Stars\]\(https://img\.shields\.io/github/stars/',
-    "last-commit": r'\[!\[Last Commit\]\(https://img\.shields\.io/github/last-commit/',
-    "language": r'\[!\[Language\]\(https://img\.shields\.io/github/languages/top/',
-    "license": r'\[!\[License\]\(https://img\.shields\.io/github/license/',
+    "stars": [
+        r'\[?!\[Stars\]\(https://img\.shields\.io/github/stars/',
+        r'\[?!\[Stars\]\(https://img\.shields\.io/gitea/stars/',
+    ],
+    "last-commit": [
+        r'\[?!\[Last Commit\]\(https://img\.shields\.io/github/last-commit/',
+        r'\[?!\[Last Commit\]\(https://img\.shields\.io/gitea/last-commit/',
+    ],
+    "language": [
+        r'\[?!\[Language\]\(https://img\.shields\.io/github/languages/top/',
+        r'\[?!\[Language\]\(https://img\.shields\.io/badge/',
+    ],
+    "license": [
+        r'\[?!\[License\]\(https://img\.shields\.io/github/license/',
+        r'\[?!\[License\]\(https://img\.shields\.io/gitea/license/',
+        r'\[?!\[License\]\(https://img\.shields\.io/badge/',
+    ],
 }
 
 def custom_tag_pattern(color):
@@ -187,7 +201,8 @@ def lint_readme(readme_path, config):
         if config["require_badges"]:
             for badge_type in config.get("badge_types", []):
                 if badge_type in BADGE_PATTERNS:
-                    if not re.search(BADGE_PATTERNS[badge_type], line):
+                    patterns = BADGE_PATTERNS[badge_type]
+                    if not any(re.search(p, line) for p in patterns):
                         errors.append((i, f"[{entry['name']}] Missing required badge: {badge_type}"))
 
         # Check custom tag badges (e.g., EU regulation tags with color "003399")
