@@ -412,6 +412,141 @@ class TestLintReadme:
             assert not any("Missing custom tag badge" in e[1] for e in errors)
 
 
+class TestCodebergBadges:
+    """Tests for Codeberg/Gitea badge pattern support."""
+
+    def _write_readme(self, tmpdir, content):
+        readme = Path(tmpdir) / "README.md"
+        readme.write_text(content)
+        return str(readme)
+
+    def _codeberg_badges(self, owner, repo):
+        """Helper to create Codeberg-compatible badges via shields.io Gitea endpoints."""
+        stars = f"[![Stars](https://img.shields.io/gitea/stars/{owner}/{repo}?gitea_url=https://codeberg.org&style=flat-square&label=%E2%AD%90)](https://codeberg.org/{owner}/{repo})"
+        last_commit = f"[![Last Commit](https://img.shields.io/gitea/last-commit/{owner}/{repo}?gitea_url=https://codeberg.org&style=flat-square)](https://codeberg.org/{owner}/{repo})"
+        language = f"[![Language](https://img.shields.io/badge/dynamic/json?url=https://codeberg.org/api/v1/repos/{owner}/{repo}/languages&query=%24..key&style=flat-square)](https://codeberg.org/{owner}/{repo})"
+        license_ = f"[![License](https://img.shields.io/gitea/license/{owner}/{repo}?gitea_url=https://codeberg.org&style=flat-square)](https://codeberg.org/{owner}/{repo})"
+        return f"{stars} {last_commit} {language} {license_}"
+
+    def test_codeberg_stars_badge_accepted(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            badges = self._codeberg_badges("user", "repo")
+            content = (
+                "## Tools\n\n"
+                f"- [MyTool](https://codeberg.org/user/repo) {badges} - A tool.\n"
+            )
+            readme = self._write_readme(tmpdir, content)
+            config = load_config(tmpdir)
+            config["require_badges"] = True
+            config["badge_types"] = ["stars"]
+            errors = lint_readme(readme, config)
+            assert not any("Missing required badge: stars" in e[1] for e in errors)
+
+    def test_codeberg_last_commit_badge_accepted(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            badges = self._codeberg_badges("user", "repo")
+            content = (
+                "## Tools\n\n"
+                f"- [MyTool](https://codeberg.org/user/repo) {badges} - A tool.\n"
+            )
+            readme = self._write_readme(tmpdir, content)
+            config = load_config(tmpdir)
+            config["require_badges"] = True
+            config["badge_types"] = ["last-commit"]
+            errors = lint_readme(readme, config)
+            assert not any("Missing required badge: last-commit" in e[1] for e in errors)
+
+    def test_codeberg_language_badge_accepted(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            badges = self._codeberg_badges("user", "repo")
+            content = (
+                "## Tools\n\n"
+                f"- [MyTool](https://codeberg.org/user/repo) {badges} - A tool.\n"
+            )
+            readme = self._write_readme(tmpdir, content)
+            config = load_config(tmpdir)
+            config["require_badges"] = True
+            config["badge_types"] = ["language"]
+            errors = lint_readme(readme, config)
+            assert not any("Missing required badge: language" in e[1] for e in errors)
+
+    def test_codeberg_license_badge_accepted(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            badges = self._codeberg_badges("user", "repo")
+            content = (
+                "## Tools\n\n"
+                f"- [MyTool](https://codeberg.org/user/repo) {badges} - A tool.\n"
+            )
+            readme = self._write_readme(tmpdir, content)
+            config = load_config(tmpdir)
+            config["require_badges"] = True
+            config["badge_types"] = ["stars", "last-commit", "language", "license"]
+            errors = lint_readme(readme, config)
+            assert not any("Missing required badge" in e[1] for e in errors)
+
+    def test_codeberg_all_badges_required_pass(self):
+        """Full Codeberg entry with all 4 badges passes all badge checks."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            badges = self._codeberg_badges("ferreiro", "plugin.video.filmin")
+            content = (
+                "## Tools\n\n"
+                f"- [plugin.video.filmin](https://codeberg.org/ferreiro/plugin.video.filmin) {badges} - A Kodi plugin.\n"
+            )
+            readme = self._write_readme(tmpdir, content)
+            config = load_config(tmpdir)
+            config["require_badges"] = True
+            config["badge_types"] = ["stars", "last-commit", "language", "license"]
+            errors = lint_readme(readme, config)
+            assert errors == []
+
+    def test_codeberg_license_dynamic_json_accepted(self):
+        """License via dynamic JSON badge (alternative to gitea/license) passes."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            license_badge = "[![License](https://img.shields.io/badge/dynamic/json?url=https://codeberg.org/api/v1/repos/u/r&query=$.license.spdx_id&style=flat-square)](https://codeberg.org/u/r)"
+            content = (
+                "## Tools\n\n"
+                f"- [MyTool](https://codeberg.org/u/r) {license_badge} - A tool.\n"
+            )
+            readme = self._write_readme(tmpdir, content)
+            config = load_config(tmpdir)
+            config["require_badges"] = True
+            config["badge_types"] = ["license"]
+            errors = lint_readme(readme, config)
+            assert not any("Missing required badge: license" in e[1] for e in errors)
+
+    def test_github_badges_still_work(self):
+        """Existing GitHub badge patterns still pass after the refactor."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            stars = "[![Stars](https://img.shields.io/github/stars/u/r)](https://github.com/u/r)"
+            last_commit = "[![Last Commit](https://img.shields.io/github/last-commit/u/r)](https://github.com/u/r)"
+            language = "[![Language](https://img.shields.io/github/languages/top/u/r)](https://github.com/u/r)"
+            license_ = "[![License](https://img.shields.io/github/license/u/r)](https://github.com/u/r)"
+            content = (
+                "## Tools\n\n"
+                f"- [MyTool](https://github.com/u/r) {stars} {last_commit} {language} {license_} - A tool.\n"
+            )
+            readme = self._write_readme(tmpdir, content)
+            config = load_config(tmpdir)
+            config["require_badges"] = True
+            config["badge_types"] = ["stars", "last-commit", "language", "license"]
+            errors = lint_readme(readme, config)
+            assert not any("Missing required badge" in e[1] for e in errors)
+
+    def test_missing_badge_still_detected(self):
+        """An entry with no badge at all still fails when badges are required."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            content = (
+                "## Tools\n\n"
+                "- [MyTool](https://codeberg.org/u/r) - A tool.\n"
+            )
+            readme = self._write_readme(tmpdir, content)
+            config = load_config(tmpdir)
+            config["require_badges"] = True
+            config["badge_types"] = ["stars"]
+            errors = lint_readme(readme, config)
+            assert any("Missing required badge: stars" in e[1] for e in errors)
+
+
 class TestMain:
     """Tests for the main() function (lines 216-249, 253)."""
 
