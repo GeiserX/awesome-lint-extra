@@ -673,6 +673,27 @@ class TestUnicodeDescriptions:
             errors = lint_readme(readme, config)
             assert any("capital" in e[1].lower() for e in errors)
 
+    def test_superscript_digit_opening_rejected(self):
+        """\u00b2 is a word character that \\d does not cover, but it is not a letter."""
+        line = "- [Alpha](https://github.com/u/a) - \u00b2 elevado al cuadrado."
+        result = parse_entry(line)
+        assert result is not None
+        assert result["description"] is None
+
+    def test_roman_numeral_opening_rejected(self):
+        """\u216b is a numeral in category Nl, not a letter."""
+        line = "- [Alpha](https://github.com/u/a) - \u216b doce en n\u00fameros romanos."
+        result = parse_entry(line)
+        assert result is not None
+        assert result["description"] is None
+
+    def test_non_letter_after_first_separator_is_not_skipped(self):
+        """The first ' - ' is the separator: a later one does not rescue the entry."""
+        line = "- [Alpha](https://github.com/u/a) - 3D - Modelado de piezas."
+        result = parse_entry(line)
+        assert result is not None
+        assert result["description"] is None
+
     def test_digit_opening_still_rejected(self):
         """The separator search requires a letter: a digit opening is not a description."""
         line = "- [Alpha](https://github.com/u/a) - 2024 edition of the list."

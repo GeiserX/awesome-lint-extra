@@ -49,6 +49,10 @@ BADGE_PATTERNS = {
     ],
 }
 
+# Separator between an entry's link/badges and its description.
+DESCRIPTION_SEPARATOR = " - "
+
+
 def custom_tag_pattern(color):
     """Build regex for custom tag badges with a specific color."""
     clickable = rf'\[!\[[^\]]+\]\(https://img\.shields\.io/badge/[^)]*{color}[^)]*\)\]\([^)]+\)'
@@ -93,12 +97,13 @@ def parse_entry(line):
     tail = m.group(3)
     rest = tail.lstrip()
 
-    # Find description: everything after the first ` - ` separator following the URL.
-    # [^\W\d_] is any Unicode letter, so a description opening with an accented
-    # capital ("Índice de...") is found; digits and punctuation are still not a
-    # description, same as before.
-    desc_match = re.search(r' - ([^\W\d_].+)$', tail)
-    description = desc_match.group(1) if desc_match else None
+    # The description is the text after the first ` - ` separator, and it has to start
+    # with a letter. str.isalpha() is that rule exactly and is Unicode aware, so
+    # "Índice de..." is a description while "2024...", "² ..." and "Ⅻ ..." are not.
+    # A regex class cannot express it: \d covers only decimal digits, so [^\W\d_]
+    # admits "²" (category No) and "Ⅻ" (Nl), both of which are word characters.
+    candidate = tail.partition(DESCRIPTION_SEPARATOR)[2]
+    description = candidate if candidate and candidate[0].isalpha() else None
 
     return {"name": name, "url": url, "rest": rest, "description": description}
 
