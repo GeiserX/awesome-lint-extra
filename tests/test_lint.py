@@ -50,14 +50,13 @@ class TestParseEntry:
         assert result["description"] == "A great project."
 
     def test_simple_entry_no_badges(self):
-        """Simple entries without badges: rest starts with '- ...' so desc regex won't match."""
+        """Entries without badges use the documented format and must parse."""
         line = "- [MyProject](https://github.com/user/repo) - A great project."
         result = parse_entry(line)
         assert result is not None
         assert result["name"] == "MyProject"
         assert result["url"] == "https://github.com/user/repo"
-        # Description is None because rest='- A great project.' has no ' - ' with preceding content
-        assert result["description"] is None
+        assert result["description"] == "A great project."
 
     def test_entry_with_multiple_badges(self):
         line = "- [Tool](https://github.com/u/t) [![Stars](https://img.shields.io/github/stars/u/t)](https://github.com/u/t) [![License](https://img.shields.io/github/license/u/t)](https://github.com/u/t) - Does things."
@@ -545,6 +544,88 @@ class TestCodebergBadges:
             config["badge_types"] = ["stars"]
             errors = lint_readme(readme, config)
             assert any("Missing required badge: stars" in e[1] for e in errors)
+
+
+class TestBadgelessEntries:
+    """Regression tests for entries in the documented contributor format (no badges)."""
+
+    def _write_readme(self, tmpdir, content):
+        readme = Path(tmpdir) / "README.md"
+        readme.write_text(content)
+        return str(readme)
+
+    def _badge(self, user, repo):
+        return f"[![Stars](https://img.shields.io/github/stars/{user}/{repo})](https://github.com/{user}/{repo})"
+
+    def test_badgeless_entry_description_parsed(self):
+        """The single space before ' - ' must not be swallowed by the entry regex."""
+        line = "- [spanish-cities-info](https://github.com/owner/repo) - Paquete con los municipios."
+        result = parse_entry(line)
+        assert result is not None
+        assert result["description"] == "Paquete con los municipios."
+
+    def test_badged_entry_description_still_parsed(self):
+        line = f"- [Alpha](https://github.com/u/a) {self._badge('u', 'a')} - First tool."
+        result = parse_entry(line)
+        assert result is not None
+        assert result["description"] == "First tool."
+
+    def test_demo_suffix_after_badges_parsed(self):
+        line = (
+            f"- [Alpha](https://github.com/u/a) {self._badge('u', 'a')}"
+            " ([Demo](https://example.es)) - First tool."
+        )
+        result = parse_entry(line)
+        assert result is not None
+        assert result["description"] == "First tool."
+
+    def test_demo_suffix_without_badges_parsed(self):
+        line = "- [Alpha](https://github.com/u/a) ([Demo](https://example.es)) - First tool."
+        result = parse_entry(line)
+        assert result is not None
+        assert result["description"] == "First tool."
+
+    def test_badgeless_entry_without_description_has_none(self):
+        line = "- [Alpha](https://github.com/u/a) no separator here"
+        result = parse_entry(line)
+        assert result is not None
+        assert result["description"] is None
+
+    def test_badgeless_readme_lints_clean(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            content = (
+                "## Tools\n\n"
+                "- [Alpha](https://github.com/u/a) - First tool.\n"
+                "- [Beta](https://github.com/u/b) - Second tool.\n"
+            )
+            readme = self._write_readme(tmpdir, content)
+            config = load_config(tmpdir)
+            errors = lint_readme(readme, config)
+            assert errors == []
+
+    def test_badgeless_entry_without_description_reports_error(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            content = (
+                "## Tools\n\n"
+                "- [Alpha](https://github.com/u/a) no separator here\n"
+            )
+            readme = self._write_readme(tmpdir, content)
+            config = load_config(tmpdir)
+            errors = lint_readme(readme, config)
+            assert any("No description found" in e[1] for e in errors)
+
+    def test_badgeless_entry_description_checks_still_apply(self):
+        """Format checks must reach a badgeless description instead of stopping at 'not found'."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            content = (
+                "## Tools\n\n"
+                "- [Alpha](https://github.com/u/a) - lowercase and no period\n"
+            )
+            readme = self._write_readme(tmpdir, content)
+            config = load_config(tmpdir)
+            errors = lint_readme(readme, config)
+            assert any("capital" in e[1].lower() for e in errors)
+            assert any("period" in e[1].lower() for e in errors)
 
 
 class TestMain:

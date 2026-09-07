@@ -83,15 +83,18 @@ def is_entry_line(line):
 def parse_entry(line):
     """Parse an entry line into components."""
     # Match: - [Name](url) ... - Description.
-    m = re.match(r'^- \[([^\]]+)\]\(([^)]+)\)\s+(.+)$', line)
+    # The whitespace after the URL is captured with the tail, not consumed: an entry
+    # without badges has nothing but that single space in front of the ' - ' separator.
+    m = re.match(r'^- \[([^\]]+)\]\(([^)]+)\)(\s+.+)$', line)
     if not m:
         return None
     name = m.group(1)
     url = m.group(2)
-    rest = m.group(3)
+    tail = m.group(3)
+    rest = tail.lstrip()
 
-    # Find description: everything after the last ` - ` separator
-    desc_match = re.search(r' - ([A-Za-z].+)$', rest)
+    # Find description: everything after the first ` - ` separator following the URL
+    desc_match = re.search(r' - ([A-Za-z].+)$', tail)
     description = desc_match.group(1) if desc_match else None
 
     return {"name": name, "url": url, "rest": rest, "description": description}
