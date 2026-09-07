@@ -628,6 +628,71 @@ class TestBadgelessEntries:
             assert any("period" in e[1].lower() for e in errors)
 
 
+class TestUnicodeDescriptions:
+    """Descriptions opening with a non-ASCII capital, e.g. a Spanish accented letter."""
+
+    def _write_readme(self, tmpdir, content):
+        readme = Path(tmpdir) / "README.md"
+        readme.write_text(content)
+        return str(readme)
+
+    def test_accented_capital_openings_parsed(self):
+        openings = (
+            "\u00cdndice de organismos p\u00fablicos.",
+            "\u00d3rgano de control de las cuentas.",
+            "\u00c1rea de datos abiertos del ayuntamiento.",
+            "\u00d1o\u00f1o pero v\u00e1lido como descripci\u00f3n.",
+            "\u00dcber-cliente para la API estatal.",
+        )
+        for opening in openings:
+            line = f"- [Alpha](https://github.com/u/a) - {opening}"
+            result = parse_entry(line)
+            assert result is not None
+            assert result["description"] == opening
+
+    def test_accented_description_lints_clean(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            content = (
+                "## Herramientas\n\n"
+                "- [Alpha](https://github.com/u/a) - \u00cdndice de organismos p\u00fablicos.\n"
+            )
+            readme = self._write_readme(tmpdir, content)
+            config = load_config(tmpdir)
+            errors = lint_readme(readme, config)
+            assert errors == []
+
+    def test_accented_lowercase_start_reports_capital_error(self):
+        """A lowercase accented opening is found, then rejected by the capital check."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            content = (
+                "## Herramientas\n\n"
+                "- [Alpha](https://github.com/u/a) - \u00e1rea de datos abiertos.\n"
+            )
+            readme = self._write_readme(tmpdir, content)
+            config = load_config(tmpdir)
+            errors = lint_readme(readme, config)
+            assert any("capital" in e[1].lower() for e in errors)
+
+    def test_digit_opening_still_rejected(self):
+        """The separator search requires a letter: a digit opening is not a description."""
+        line = "- [Alpha](https://github.com/u/a) - 2024 edition of the list."
+        result = parse_entry(line)
+        assert result is not None
+        assert result["description"] is None
+
+    def test_punctuation_opening_still_rejected(self):
+        line = '- [Alpha](https://github.com/u/a) - "Comillas" al inicio.'
+        result = parse_entry(line)
+        assert result is not None
+        assert result["description"] is None
+
+    def test_underscore_opening_still_rejected(self):
+        line = "- [Alpha](https://github.com/u/a) - _cursiva al inicio._"
+        result = parse_entry(line)
+        assert result is not None
+        assert result["description"] is None
+
+
 class TestMain:
     """Tests for the main() function (lines 216-249, 253)."""
 

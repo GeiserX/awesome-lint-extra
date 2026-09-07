@@ -93,8 +93,11 @@ def parse_entry(line):
     tail = m.group(3)
     rest = tail.lstrip()
 
-    # Find description: everything after the first ` - ` separator following the URL
-    desc_match = re.search(r' - ([A-Za-z].+)$', tail)
+    # Find description: everything after the first ` - ` separator following the URL.
+    # [^\W\d_] is any Unicode letter, so a description opening with an accented
+    # capital ("Índice de...") is found; digits and punctuation are still not a
+    # description, same as before.
+    desc_match = re.search(r' - ([^\W\d_].+)$', tail)
     description = desc_match.group(1) if desc_match else None
 
     return {"name": name, "url": url, "rest": rest, "description": description}
