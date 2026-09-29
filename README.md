@@ -19,13 +19,13 @@ Designed as a complement or replacement for [awesome-lint](https://github.com/si
 ## Features
 
 - Entry format: `- [Name](url) ... - Description.`
-- Description style: starts with a capital letter, ends with a period, does not repeat the project name.
+- Description style: starts with a capital letter, ends with a period, does not start with the project name.
 - Alphabetical order: entries sorted within each section and subsection.
 - No duplicate URLs: each project listed once.
 - URL host check: only approved git hosting domains (configurable).
 - Badge presence: optionally require shields.io badges (stars, last commit, language, license).
 - Custom tag badges: require coloured tag badges (for example an EU regulation or a Spanish institution).
-- Table of contents: the contents list matches the actual sections.
+- Table of contents: every entry in the contents list has a matching `##` section.
 
 ## Quick start
 

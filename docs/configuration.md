@@ -12,7 +12,7 @@ for every option.
 | `require_custom_tags` | `null` | A hex colour such as `"003399"`: every entry needs a shields.io tag badge of that colour. |
 | `check_alphabetical` | `true` | Entries sorted within each section and subsection. |
 | `check_description_format` | `true` | Every entry has a description that starts with a capital letter, ends with a period and does not start with the project name. |
-| `check_toc` | `true` | The contents list matches the actual sections. |
+| `check_toc` | `true` | Every entry in the contents list has a matching `##` section. (A section missing from the contents list is not reported.) |
 
 The GitHub Action inputs `allowed_hosts`, `require_badges`, `badge_types`, `require_custom_tags` and
 `check_alphabetical` override the same keys in `.awesomerc.json`, and `readme` sets the file to lint
