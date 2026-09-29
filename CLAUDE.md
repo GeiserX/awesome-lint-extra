@@ -22,7 +22,7 @@ awesome-lint-extra
 pytest
 
 # Use as GitHub Action
-# uses: GeiserX/awesome-lint-extra@main
+# uses: GeiserX/awesome-lint-extra@v1.1.1
 ```
 
 ## Architecture
@@ -30,8 +30,7 @@ pytest
 - `action.yml` — GitHub Action definition
 - `.awesomerc.example.json` — Example configuration file
 - `tests/` — Test suite
-- `media/` — Images and assets
-- `docs/` — Documentation
+- `docs/` — Documentation (`getting-started.md`, `configuration.md`); images in `docs/images/`
 
 ## Key Rules
 - Validates: entry format, description style, alphabetical order, no duplicate URLs, URL host allowlist, badge presence, ToC consistency
