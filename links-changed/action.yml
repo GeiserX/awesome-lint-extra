@@ -21,15 +21,17 @@ runs:
         BASE_REF: ${{ github.base_ref }}
         README: ${{ inputs.readme }}
       # A line the PR removes and adds back unchanged is a move (an alphabetical
-      # reorder), not a new link, so it is not checked again.
+      # reorder), not a new link, so it is not checked again. The extracted
+      # lines go beside the list file, so a relative link still resolves.
       run: |
         git diff --unified=0 --no-color "origin/${BASE_REF}...HEAD" -- "$README" > "$RUNNER_TEMP/readme.diff"
         LC_ALL=C comm -13 \
           <(sed -n '/^--- /d; s/^-//p' "$RUNNER_TEMP/readme.diff" | LC_ALL=C sort -u) \
           <(sed -n '/^+++ /d; s/^+//p' "$RUNNER_TEMP/readme.diff" | LC_ALL=C sort -u) \
-          > "$RUNNER_TEMP/links-changed.md"
-        echo "Added or changed lines: $(wc -l < "$RUNNER_TEMP/links-changed.md")"
-        cat "$RUNNER_TEMP/links-changed.md"
+          > "$(dirname "$README")/links-changed.md"
+        echo "LINKS_CHANGED=$(dirname "$README")/links-changed.md" >> "$GITHUB_ENV"
+        echo "Added or changed lines: $(wc -l < "$(dirname "$README")/links-changed.md")"
+        cat "$(dirname "$README")/links-changed.md"
 
     - name: Set the lychee arguments
       shell: bash
@@ -47,7 +49,7 @@ runs:
     - id: first
       uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
       with:
-        args: ${{ env.LYCHEE_ARGS }} ${{ runner.temp }}/links-changed.md
+        args: ${{ env.LYCHEE_ARGS }} ${{ env.LINKS_CHANGED }}
         failIfEmpty: false
         fail: false
 
@@ -61,6 +63,6 @@ runs:
     - if: steps.first.outputs.exit_code != '0'
       uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
       with:
-        args: ${{ env.LYCHEE_ARGS }} ${{ runner.temp }}/links-changed.md
+        args: ${{ env.LYCHEE_ARGS }} ${{ env.LINKS_CHANGED }}
         failIfEmpty: false
         fail: true
