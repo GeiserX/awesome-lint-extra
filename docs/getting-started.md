@@ -41,6 +41,35 @@ jobs:
 Pin a release tag rather than `@main`, so a new check never turns your list red without a change on
 your side. The inputs are in [Configuration](configuration.md).
 
+## The PR link check the lists share
+
+`links-changed` is a second action in this repo. On a pull request it runs
+[lychee](https://github.com/lycheeverse/lychee) over only the README lines the PR adds or changes, so a
+site that is down elsewhere in the list never blocks an unrelated PR. 403 and 429 pass (bot blocks and
+rate limits); any other error or timeout fails if it repeats on a second pass a minute later. Hosts that
+always block the checker go in the list's own `.lycheeignore`. It needs the full history for the diff:
+
+```yaml
+name: links-changed
+on:
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  links-changed:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: GeiserX/awesome-lint-extra/links-changed@main
+```
+
+The GeiserX lists reference `@main` here on purpose: they belong to the same owner, and a change to the
+check should land once, not in twenty pull requests. A list owned by someone else should pin a tag.
+
 ## From a checkout, without installing
 
 ```bash
