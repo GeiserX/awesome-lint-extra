@@ -44,6 +44,12 @@ As a GitHub Action, after `actions/checkout`:
 
 The full workflow and running from a checkout without installing are in [Getting started](https://github.com/GeiserX/awesome-lint-extra/blob/main/docs/getting-started.md).
 
+The repo also ships `links-changed`, the PR link check the GeiserX awesome lists share. It runs lychee over only the README lines a pull request adds or changes, with a second pass a minute later, after a checkout with `fetch-depth: 0`:
+
+```yaml
+- uses: GeiserX/awesome-lint-extra/links-changed@main
+```
+
 ## Documentation
 
 - [Getting started](https://github.com/GeiserX/awesome-lint-extra/blob/main/docs/getting-started.md): pip, the GitHub Action and a checkout.

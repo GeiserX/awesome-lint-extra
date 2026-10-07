@@ -1,0 +1,68 @@
+name: 'Awesome links changed'
+description: 'Checks, with lychee, only the README links a pull request adds or changes, so a site that is down elsewhere in the list never blocks an unrelated PR'
+author: 'GeiserX'
+
+# Needs a checkout with the full history (actions/checkout with fetch-depth: 0)
+# so the diff against the base branch exists. The whole list is not this
+# action's job: that is a weekly check, run from outside the list's repo.
+
+inputs:
+  readme:
+    description: 'Path to the list file'
+    required: false
+    default: 'README.md'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Collect the lines this PR adds or changes
+      shell: bash
+      env:
+        BASE_REF: ${{ github.base_ref }}
+        README: ${{ inputs.readme }}
+      # A line the PR removes and adds back unchanged is a move (an alphabetical
+      # reorder), not a new link, so it is not checked again. The extracted
+      # lines go beside the list file, so a relative link still resolves.
+      run: |
+        git diff --unified=0 --no-color "origin/${BASE_REF}...HEAD" -- "$README" > "$RUNNER_TEMP/readme.diff"
+        LC_ALL=C comm -13 \
+          <(sed -n '/^--- /d; s/^-//p' "$RUNNER_TEMP/readme.diff" | LC_ALL=C sort -u) \
+          <(sed -n '/^+++ /d; s/^+//p' "$RUNNER_TEMP/readme.diff" | LC_ALL=C sort -u) \
+          > "$(dirname "$README")/links-changed.md"
+        echo "LINKS_CHANGED=$(dirname "$README")/links-changed.md" >> "$GITHUB_ENV"
+        echo "Added or changed lines: $(wc -l < "$(dirname "$README")/links-changed.md")"
+        cat "$(dirname "$README")/links-changed.md"
+
+    - name: Set the lychee arguments
+      shell: bash
+      env:
+        LIST_SITE: ${{ github.event.repository.name }}
+      # 403 and 429 are bot blocks and rate limits, not dead pages. Any other
+      # 4xx, any 5xx, any refused connection and any timeout fails. The list's
+      # own .lycheeignore names the hosts that always block the checker. The
+      # list's own site is published on merge, so a PR cannot check it.
+      run: |
+        {
+          echo "LYCHEE_ARGS=--no-progress --insecure --timeout 30 --max-retries 3 --retry-wait-time 5 --accept '200..=299,403,429' --cache --max-cache-age 1d --exclude '^https://geiserx\\.github\\.io/${LIST_SITE}/'"
+        } >> "$GITHUB_ENV"
+
+    - id: first
+      uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
+      with:
+        args: ${{ env.LYCHEE_ARGS }} ${{ env.LINKS_CHANGED }}
+        failIfEmpty: false
+        fail: false
+
+    # lychee retries timeouts and 429s on its own but not a 5xx or a refused
+    # connection. So a failing link gets a second pass a minute later; the
+    # cache skips every link that already passed.
+    - if: steps.first.outputs.exit_code != '0'
+      shell: bash
+      run: sleep 60
+
+    - if: steps.first.outputs.exit_code != '0'
+      uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
+      with:
+        args: ${{ env.LYCHEE_ARGS }} ${{ env.LINKS_CHANGED }}
+        failIfEmpty: false
+        fail: true
